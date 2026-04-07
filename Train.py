@@ -1,49 +1,37 @@
-# train.py
-
 import pandas as pd
-import numpy as np
-from sklearn.tree import DecisionTreeRegressor
 import pickle
+from sklearn.tree import DecisionTreeRegressor
 
-# Dataset URL
-DATA_URL = "https://raw.githubusercontent.com/leontoddjohnson/datasets/refs/heads/main/data/coffee_analysis.csv"
+# Load the coffee analysis data
+url = "https://raw.githubusercontent.com/leontoddjohnson/datasets/refs/heads/main/data/coffee_analysis.csv"
+df = pd.read_csv(url)
 
-# Function to map roast categories to numeric values
-def roast_category(roast):
-    mapping = {
-        'Light': 0,
-        'Medium-Light': 1,
-        'Medium': 2,
-        'Medium-Dark': 3,
-        'Dark': 4
+# Create a function to map roast values to numerical labels
+def roast_category(roast_value):
+    roast_map = {
+        'Light': 1,
+        'Medium-Light': 2,
+        'Medium': 3,
+        'Medium-Dark': 4,
+        'Dark': 5
     }
-    return mapping.get(roast, np.nan)  # unknown or missing → NaN
+    return roast_map.get(roast_value, roast_value)
 
-def main():
-    # Load dataset
-    df = pd.read_csv(DATA_URL)
+# Apply the roast_category function to create roast_cat column
+df['roast_cat'] = df['roast'].apply(roast_category)
 
-    # Create numeric roast column
-    df['roast_cat'] = df['roast'].apply(roast_category)
+# Prepare the data - remove any rows with missing values
+df_clean = df[['100g_USD', 'roast_cat', 'rating']].dropna()
 
-    # Select features and target
-    df = df[['100g_USD', 'roast_cat', 'rating']]
+X = df_clean[['100g_USD', 'roast_cat']].values
+y = df_clean['rating'].values
 
-    # Drop rows where target or price is missing (keep NaN in roast_cat if present)
-    df = df.dropna(subset=['100g_USD', 'rating'])
+# Train the Decision Tree Regressor model
+model = DecisionTreeRegressor()
+model.fit(X, y)
 
-    X = df[['100g_USD', 'roast_cat']]
-    y = df['rating']
+# Save the model as a pickle file
+with open('model_2.pickle', 'wb') as f:
+    pickle.dump(model, f)
 
-    # Train Decision Tree Regressor
-    dtr = DecisionTreeRegressor(random_state=42)
-    dtr.fit(X, y)
-
-    # Save model
-    with open("model_2.pickle", "wb") as f:
-        pickle.dump(dtr, f)
-
-    print("Model trained and saved as model_2.pickle")
-
-if __name__ == "__main__":
-    main()
+print("Decision Tree model trained and saved as model_2.pickle")
